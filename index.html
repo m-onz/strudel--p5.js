@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script language="javascript" type="text/javascript" src="p5.min.js"></script>
+    <style> body { padding: 0; margin: 0; } </style>
+    <title>strudel + p5.js</title>
+  </head>
+
+  <body style="margin: 0;">
+    <div id="output-canvas" style="position:absolute;top:0;left:0;z-index:1;"></div>
+
+    <script type="module">
+      import { controls, repl, evalScope } from 'https://cdn.skypack.dev/@strudel.cycles/core@0.3.2';
+      import { mini } from 'https://cdn.skypack.dev/@strudel.cycles/mini@0.3.2';
+      import { transpiler } from 'https://cdn.skypack.dev/@strudel.cycles/transpiler@0.3.2';
+      import { getAudioContext, webaudioOutput } from 'https://cdn.skypack.dev/@strudel.cycles/webaudio@0.3.3';
+
+      var ctx = getAudioContext()
+
+      evalScope(
+        controls,
+        import('https://cdn.skypack.dev/@strudel.cycles/core@0.3.2'),
+        import('https://cdn.skypack.dev/@strudel.cycles/mini@0.3.2'),
+        import('https://cdn.skypack.dev/@strudel.cycles/tonal@0.3.3'),
+        import('https://cdn.skypack.dev/@strudel.cycles/webaudio@0.3.3'),
+      );
+
+      var { evaluate } = repl({
+        defaultOutput: webaudioOutput,
+        getTime: () => ctx.currentTime,
+        transpiler,
+      });
+
+      function startAudio () {
+        ctx.resume();
+        evaluate(getTune());
+      }
+
+      // setTimeout(function () {
+      //   ctx.resume();
+      //   evaluate(getTune());
+      // }, 1000)
+
+      function getTune() {
+        return `await samples('github:tidalcycles/Dirt-Samples/master')
+stack(
+  // amen
+  n("0 1 2 3 4 5 6 7")
+  .sometimes(x=>x.ply(2))
+  .rarely(x=>x.speed("2 | -2"))
+  .sometimesBy(.4, x=>x.delay(".5"))
+  .s("amencutup")
+  .slow(2)
+  .room(.5)
+  ,
+  // bass
+  sine.add(saw.slow(4)).range(0,7).segment(8)
+  .superimpose(x=>x.add(.1))
+  .scale('G0 minor').note()
+  .s("sawtooth").decay(.1).sustain(0)
+  .gain(.4).cutoff(perlin.range(300,3000).slow(8)).resonance(10)
+  .degradeBy("0 0.1 .5 .1")
+  .rarely(add(note("12")))
+  ,
+  // chord
+  note("Bb3,D4".superimpose(x=>x.add(.2)))
+  .s('sawtooth').cutoff(1000).struct("<~@3 [~ x]>")
+  .decay(.05).sustain(.0).delay(.8).delaytime(.125).room(.8)
+  ,
+  // alien
+  s("breath").room(1).shape(.6).chop(16).rev().mask("<x ~@7>")
+  ,
+  n("0 1").s("east").delay(.5).degradeBy(.8).speed(rand.range(.5,1.5))
+).reset("<x@7 x(5,8)>")`;
+      }
+
+  function sketch (p) {
+      var t = 0;
+      /*
+      * @name Wavemaker p5.js example
+     */
+     var button;
+      p.setup = function () {
+        p.createCanvas(p.displayWidth, p.displayHeight-120);
+        p.noStroke();
+        p.fill('#f8c20b');
+        var x = p.createElement('pre', getTune())
+        x.style('font-size', '1.1em')
+        x.style('color', 'white')
+        x.style('background', 'black')
+        x.style('padding', '2em')
+        x.style('position', 'absolute')
+        x.style('text-shadow', '1px 2px 8px black')
+        x.position(0, 0)
+
+        button = p.createButton('start audio')
+        button.style('font-size', '1.1em')
+        button.style('color', 'white')
+        button.style('background', 'black')
+        button.style('padding', '2em')
+        button.position(p.displayWidth - 150, 11);
+        button.mousePressed(startAudio);
+      }
+      p.draw = function () {
+        p.background(10, 11);
+        for (var x = 0; x <= p.width; x = x + 30) {
+          for (var y = 0; y <= p.height; y = y + 30) {
+            var xAngle = p.map(p.mouseX, 0, p.width, -8 * p.PI, 8 * p.PI, true);
+            var yAngle = p.map(p.mouseY, 0, p.height, -8 * p.PI, 8 * p.PI, true);
+            var angle = xAngle * (x / p.width) + yAngle * (y / p.height);
+            var myX = x + 20 * p.cos(2 * p.PI * t + angle);
+            var myY = y + 20 * p.sin(2 * p.PI * t + angle);
+            p.circle(myX, myY, 20);
+          }
+        }
+        t = t + 0.01;
+      }
+    }
+
+    new p5(sketch, 'output-canvas')
+
+    </script>
+  </body>
+</html>
